@@ -192,7 +192,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="math\Matrix4x4.cpp" />
     <ClCompile Include="math\Spherical.cpp" />
     <ClCompile Include="camera\OrbitCamera.cpp" />
-    <ClCompile Include="debug\CameraDebugUi.cpp" />
+    <ClCompile Include="ui\CameraDebugUi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DirectXGame\3d\Camera.h" />
@@ -228,7 +228,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="math\Matrix4x4.h" />
     <ClInclude Include="math\Spherical.h" />
     <ClInclude Include="camera\OrbitCamera.h" />
-    <ClInclude Include="debug\CameraDebugUi.h" />
+    <ClInclude Include="ui\CameraDebugUi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

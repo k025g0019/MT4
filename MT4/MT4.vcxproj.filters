@@ -7,7 +7,7 @@
     <Filter Include="Camera">
       <UniqueIdentifier>{1a2b3c4d-0002-4000-9000-000000000002}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Debug">
+    <Filter Include="Ui">
       <UniqueIdentifier>{1a2b3c4d-0003-4000-9000-000000000003}</UniqueIdentifier>
     </Filter>
     <Filter Include="KamataEngine">
@@ -38,8 +38,8 @@
     <ClCompile Include="camera\OrbitCamera.cpp">
       <Filter>Camera</Filter>
     </ClCompile>
-    <ClCompile Include="debug\CameraDebugUi.cpp">
-      <Filter>Debug</Filter>
+    <ClCompile Include="ui\CameraDebugUi.cpp">
+      <Filter>Ui</Filter>
     </ClCompile>
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp">
       <Filter>KamataEngine\Adapter</Filter>
@@ -141,8 +141,8 @@
     <ClInclude Include="camera\OrbitCamera.h">
       <Filter>Camera</Filter>
     </ClInclude>
-    <ClInclude Include="debug\CameraDebugUi.h">
-      <Filter>Debug</Filter>
+    <ClInclude Include="ui\CameraDebugUi.h">
+      <Filter>Ui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

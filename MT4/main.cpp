@@ -1,7 +1,7 @@
 #include <Novice.h>
 
 #include "camera/OrbitCamera.h"
-#include "debug/CameraDebugUi.h"
+#include "ui/CameraDebugUi.h"
 
 const char kWindowTitle[] = "学籍番号";
 
