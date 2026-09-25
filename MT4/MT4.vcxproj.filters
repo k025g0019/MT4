@@ -7,6 +7,12 @@
     <Filter Include="Camera">
       <UniqueIdentifier>{1a2b3c4d-0002-4000-9000-000000000002}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Object">
+      <UniqueIdentifier>{1a2b3c4d-0004-4000-9000-000000000004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{1a2b3c4d-0005-4000-9000-000000000005}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Ui">
       <UniqueIdentifier>{1a2b3c4d-0003-4000-9000-000000000003}</UniqueIdentifier>
     </Filter>
@@ -39,6 +45,27 @@
       <Filter>Camera</Filter>
     </ClCompile>
     <ClCompile Include="ui\CameraDebugUi.cpp">
+      <Filter>Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="math\Vector2.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="math\Interpolation.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="object\Circle.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="object\CursorCircle.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="object\FollowCircle.cpp">
+      <Filter>Object</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\FollowScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\FollowDebugUi.cpp">
       <Filter>Ui</Filter>
     </ClCompile>
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp">
@@ -142,6 +169,27 @@
       <Filter>Camera</Filter>
     </ClInclude>
     <ClInclude Include="ui\CameraDebugUi.h">
+      <Filter>Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Vector2.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="math\Interpolation.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="object\Circle.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="object\CursorCircle.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="object\FollowCircle.h">
+      <Filter>Object</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\FollowScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\FollowDebugUi.h">
       <Filter>Ui</Filter>
     </ClInclude>
   </ItemGroup>

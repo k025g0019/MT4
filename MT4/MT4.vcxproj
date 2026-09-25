@@ -193,6 +193,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="math\Spherical.cpp" />
     <ClCompile Include="camera\OrbitCamera.cpp" />
     <ClCompile Include="ui\CameraDebugUi.cpp" />
+    <ClCompile Include="math\Vector2.cpp" />
+    <ClCompile Include="math\Interpolation.cpp" />
+    <ClCompile Include="object\Circle.cpp" />
+    <ClCompile Include="object\CursorCircle.cpp" />
+    <ClCompile Include="object\FollowCircle.cpp" />
+    <ClCompile Include="scene\FollowScene.cpp" />
+    <ClCompile Include="ui\FollowDebugUi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DirectXGame\3d\Camera.h" />
@@ -229,6 +236,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="math\Spherical.h" />
     <ClInclude Include="camera\OrbitCamera.h" />
     <ClInclude Include="ui\CameraDebugUi.h" />
+    <ClInclude Include="math\Vector2.h" />
+    <ClInclude Include="math\Interpolation.h" />
+    <ClInclude Include="object\Circle.h" />
+    <ClInclude Include="object\CursorCircle.h" />
+    <ClInclude Include="object\FollowCircle.h" />
+    <ClInclude Include="scene\FollowScene.h" />
+    <ClInclude Include="ui\FollowDebugUi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

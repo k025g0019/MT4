@@ -1,7 +1,7 @@
 #include <Novice.h>
 
-#include "camera/OrbitCamera.h"
-#include "ui/CameraDebugUi.h"
+#include "scene/FollowScene.h"
+#include "ui/FollowDebugUi.h"
 
 const char kWindowTitle[] = "学籍番号";
 
@@ -15,10 +15,10 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	char keys[256] = {0};
 	char preKeys[256] = {0};
 
-	// 注視点(原点)を球面座標で回り込むカメラ
-	OrbitCamera camera;
-	// 球面座標を操作するデバッグUI
-	CameraDebugUi cameraDebugUi;
+	// 円の追従補間を確認するシーン
+	FollowScene followScene;
+	// 追従速度を操作するデバッグUI
+	FollowDebugUi followDebugUi;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -33,8 +33,11 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓更新処理ここから
 		///
 
-		// ImGuiで球面座標を操作し、直交座標とカメラ行列を表示する
-		cameraDebugUi.Draw(camera);
+		// ImGuiで追従速度を変更する
+		followDebugUi.Draw(followScene.GetFollowCircle());
+
+		// マウスカーソルの円と、それを追いかける円を更新する
+		followScene.Update();
 
 		///
 		/// ↑更新処理ここまで
@@ -43,6 +46,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		///
 		/// ↓描画処理ここから
 		///
+
+		followScene.Draw();
 
 		///
 		/// ↑描画処理ここまで
