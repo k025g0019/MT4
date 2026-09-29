@@ -1,13 +1,11 @@
 #include <Novice.h>
+#include <cstdio>
 
-#include "scene/FollowScene.h"
-#include "ui/FollowDebugUi.h"
-
-const char kWindowTitle[] = "学籍番号";
+#include "Quaternion.h"
+constexpr char kWindowTitle[] = "学籍番号";
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
@@ -15,11 +13,16 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	char keys[256] = {0};
 	char preKeys[256] = {0};
 
-	// 円の追従補間を確認するシーン
-	FollowScene followScene;
-	// 追従速度を操作するデバッグUI
-	FollowDebugUi followDebugUi;
+	Quaternion q1 = {2.0f, 3.0f, 4.0f, 1.0f};
+	Quaternion q2 = {1.0f, 3.0f, 5.0f, 2.0f};
 
+	Quaternion identity = IdentityQuaternion();
+	Quaternion conj = Conjugate(q1);
+	Quaternion inv = Inverse(q1);
+	Quaternion normal = Normalize(q1);
+	Quaternion mul1 = Multiply(q1, q2);
+	Quaternion mul2 = Multiply(q2, q1);
+	float norm = Norm(q1);
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
 		// フレームの開始
@@ -33,11 +36,6 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓更新処理ここから
 		///
 
-		// ImGuiで追従速度を変更する
-		followDebugUi.Draw(followScene.GetFollowCircle());
-
-		// マウスカーソルの円と、それを追いかける円を更新する
-		followScene.Update();
 
 		///
 		/// ↑更新処理ここまで
@@ -47,7 +45,14 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓描画処理ここから
 		///
 
-		followScene.Draw();
+		Novice::ScreenPrintf(0, 20, "identity: (%.2f, %.2f, %.2f, %.2f)", identity.x, identity.y, identity.z,
+		                     identity.w);
+		Novice::ScreenPrintf(0, 40, "conjugate: (%.2f, %.2f, %.2f, %.2f)", conj.x, conj.y, conj.z, conj.w);
+		Novice::ScreenPrintf(0, 60, "inverse: (%.2f, %.2f, %.2f, %.2f)", inv.x, inv.y, inv.z, inv.w);
+		Novice::ScreenPrintf(0, 80, "normalize: (%.2f, %.2f, %.2f, %.2f)", normal.x, normal.y, normal.z, normal.w);
+		Novice::ScreenPrintf(0, 100, "multiply 1: (%.2f, %.2f, %.2f, %.2f)", mul1.x, mul1.y, mul1.z, mul1.w);
+		Novice::ScreenPrintf(0, 120, "multiply 2: (%.2f, %.2f, %.2f, %.2f)", mul2.x, mul2.y, mul2.z, mul2.w);
+		Novice::ScreenPrintf(0, 140, "norm: %.2f", norm);
 
 		///
 		/// ↑描画処理ここまで

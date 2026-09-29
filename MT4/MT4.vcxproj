@@ -192,6 +192,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="math\Matrix4x4.cpp" />
     <ClCompile Include="math\Spherical.cpp" />
     <ClCompile Include="camera\OrbitCamera.cpp" />
+    <ClCompile Include="Quaternion.cpp" />
     <ClCompile Include="ui\CameraDebugUi.cpp" />
     <ClCompile Include="math\Vector2.cpp" />
     <ClCompile Include="math\Interpolation.cpp" />
@@ -235,6 +236,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="math\Matrix4x4.h" />
     <ClInclude Include="math\Spherical.h" />
     <ClInclude Include="camera\OrbitCamera.h" />
+    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="ui\CameraDebugUi.h" />
     <ClInclude Include="math\Vector2.h" />
     <ClInclude Include="math\Interpolation.h" />
