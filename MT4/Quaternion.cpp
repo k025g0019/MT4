@@ -1,4 +1,4 @@
-#include "Quaternion.h"
+﻿#include "Quaternion.h"
 
 #include <cmath>
 #include <sys/stat.h>
@@ -65,4 +65,63 @@ Quaternion Multiply(Quaternion& lhs, Quaternion& rhs) {
 		lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w,
 		lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z
 	};
+}
+
+Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle) {
+	// 回転軸を正規化
+	Vector3 n = Normalize(axis);
+
+	// 回転角度の半分
+	float halfAngle = angle / 2.0f;
+
+	Quaternion result;
+	result.x = n.x * std::sin(halfAngle);
+	result.y = n.y * std::sin(halfAngle);
+	result.z = n.z * std::sin(halfAngle);
+	result.w = std::cos(halfAngle);
+
+	return result;
+}
+
+Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion) {
+	// ベクトルを四元数として表現
+	Quaternion vectorQuat{vector.x, vector.y, vector.z, 0.0f};
+	// 回転を適用。既存APIは変更可能な参照を受けるため、四元数を複製して渡す。
+	Quaternion rotation = quaternion;
+	Quaternion firstProduct = Multiply(rotation, vectorQuat);
+	Quaternion inverse = Inverse(rotation);
+	Quaternion rotatedQuat = Multiply(firstProduct, inverse);
+	// 結果のベクトルを返す
+	return Vector3{rotatedQuat.x, rotatedQuat.y, rotatedQuat.z};
+}
+
+Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion) {
+	Matrix4x4 rotationMatrix;
+	float xx = quaternion.x * quaternion.x;
+	float yy = quaternion.y * quaternion.y;
+	float zz = quaternion.z * quaternion.z;
+	float xy = quaternion.x * quaternion.y;
+	float xz = quaternion.x * quaternion.z;
+	float yz = quaternion.y * quaternion.z;
+	float wx = quaternion.w * quaternion.x;
+	float wy = quaternion.w * quaternion.y;
+	float wz = quaternion.w * quaternion.z;
+	rotationMatrix.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	// Transform の行ベクトル方式に合わせて転置した配置にする。
+	rotationMatrix.m[0][1] = 2.0f * (xy + wz);
+	rotationMatrix.m[0][2] = 2.0f * (xz - wy);
+	rotationMatrix.m[0][3] = 0.0f;
+	rotationMatrix.m[1][0] = 2.0f * (xy - wz);
+	rotationMatrix.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	rotationMatrix.m[1][2] = 2.0f * (yz + wx);
+	rotationMatrix.m[1][3] = 0.0f;
+	rotationMatrix.m[2][0] = 2.0f * (xz + wy);
+	rotationMatrix.m[2][1] = 2.0f * (yz - wx);
+	rotationMatrix.m[2][2] = 1.0f - 2.0f * (xx + yy);
+	rotationMatrix.m[2][3] = 0.0f;
+	rotationMatrix.m[3][0] = 0.0f;
+	rotationMatrix.m[3][1] = 0.0f;
+	rotationMatrix.m[3][2] = 0.0f;
+	rotationMatrix.m[3][3] = 1.0f;
+	return rotationMatrix;
 }

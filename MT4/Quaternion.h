@@ -1,7 +1,10 @@
-#pragma once
+﻿#pragma once
 /// <summary>
 /// Quaternion(四元数)
 /// </summary>
+#include "math/Matrix4x4.h"
+#include "math/Vector3.h"
+
 
 struct Quaternion {
 	float x; // 実部
@@ -20,3 +23,12 @@ Quaternion Normalize(Quaternion& quaternion); // 正規化四元数
 
 Quaternion Multiply(Quaternion& lhs, Quaternion& rhs); // 四元数の積
 float Norm(const Quaternion& quaternion); // 四元数のノルム
+
+//　任意の軸回転を表す
+Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle);
+
+//ベクトルをQuaterinionで回転させた結果のベクトルを求める
+Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion);
+
+//Quaternionから回転行列を作る
+Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion);
