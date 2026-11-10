@@ -1,5 +1,6 @@
 ﻿#include "Quaternion.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sys/stat.h>
 /// <summary>
@@ -117,6 +118,40 @@ Quaternion DirectionToDirection(const Vector3& from, const Vector3& to) {
 	// q = (from × to, 1 + from・to) を正規化すると最短回転になる。
 	Quaternion rotation{cross.x, cross.y, cross.z, 1.0f + dot};
 	return Normalize(rotation);
+}
+
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t) {
+	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+	Quaternion end = q1;
+	if (dot < 0.0f) {
+		// q と -q は同じ回転なので、短い方の経路を使う。
+		end = Quaternion{-q1.x, -q1.y, -q1.z, -q1.w};
+		dot = -dot;
+	}
+
+	// 浮動小数点誤差で acos の定義域を外れないようにする。
+	dot = std::clamp(dot, -1.0f, 1.0f);
+	constexpr float kNearlySameDirection = 0.9995f;
+	if (dot > kNearlySameDirection) {
+		// sin(theta) がほぼゼロのときは線形補間で不安定な除算を避ける。
+		return Quaternion{
+			q0.x + t * (end.x - q0.x),
+			q0.y + t * (end.y - q0.y),
+			q0.z + t * (end.z - q0.z),
+			q0.w + t * (end.w - q0.w)
+		};
+	}
+
+	const float theta = std::acos(dot);
+	const float sinTheta = std::sin(theta);
+	const float scale0 = std::sin((1.0f - t) * theta) / sinTheta;
+	const float scale1 = std::sin(t * theta) / sinTheta;
+	return Quaternion{
+		scale0 * q0.x + scale1 * end.x,
+		scale0 * q0.y + scale1 * end.y,
+		scale0 * q0.z + scale1 * end.z,
+		scale0 * q0.w + scale1 * end.w
+	};
 }
 
 Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion) {

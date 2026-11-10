@@ -48,6 +48,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	Matrix4x4 rotateMatrix = MakeRotateMatrix(rotation);
 	Vector3 rotateByQuaternion = RotateVector(pointY, rotation);
 	Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);
+	Quaternion rotation0 = MakeRotateAxisAngleQuaternion(Vector3{0.71f, 0.71f, 0.0f}, 0.3f);
+	Quaternion rotation1 = MakeRotateAxisAngleQuaternion(Vector3{0.71f, 0.0f, 0.71f}, 3.141592f);
+	Quaternion interpolate0 = Slerp(rotation0, rotation1, 0.0f);
+	Quaternion interpolate1 = Slerp(rotation0, rotation1, 0.3f);
+	Quaternion interpolate2 = Slerp(rotation0, rotation1, 0.5f);
+	Quaternion interpolate3 = Slerp(rotation0, rotation1, 0.7f);
+	Quaternion interpolate4 = Slerp(rotation0, rotation1, 1.0f);
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
 		// フレームの開始
@@ -76,6 +83,13 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		DirectionScreenPrintf(0, kRowHeight * 9, Vector3{1.0f, 0.0f, 0.0f}, Vector3{0.0f, 1.0f, 0.0f}, "normal");
 		DirectionScreenPrintf(0, kRowHeight * 16, Vector3{1.0f, 0.0f, 0.0f}, Vector3{1.0f, 0.0f, 0.0f}, "same");
 		DirectionScreenPrintf(0, kRowHeight * 23, Vector3{1.0f, 0.0f, 0.0f}, Vector3{-1.0f, 0.0f, 0.0f}, "opposite");
+		QuaternionScreenPrintf(650, kRowHeight * 0, rotation0, "rotation0");
+		QuaternionScreenPrintf(650, kRowHeight * 1, rotation1, "rotation1");
+		QuaternionScreenPrintf(650, kRowHeight * 3, interpolate0, "Slerp(q0, q1, 0.0f)");
+		QuaternionScreenPrintf(650, kRowHeight * 4, interpolate1, "Slerp(q0, q1, 0.3f)");
+		QuaternionScreenPrintf(650, kRowHeight * 5, interpolate2, "Slerp(q0, q1, 0.5f)");
+		QuaternionScreenPrintf(650, kRowHeight * 6, interpolate3, "Slerp(q0, q1, 0.7f)");
+		QuaternionScreenPrintf(650, kRowHeight * 7, interpolate4, "Slerp(q0, q1, 1.0f)");
 
 		///
 		/// ↑描画処理ここまで

@@ -33,5 +33,8 @@ Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion);
 // 正規化済みの from を to に向ける単位四元数を返す
 Quaternion DirectionToDirection(const Vector3& from, const Vector3& to);
 
+// 単位 Quaternion 同士を短い回転経路で球面線形補間する
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t);
+
 //Quaternionから回転行列を作る
 Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion);
