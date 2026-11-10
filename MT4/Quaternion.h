@@ -30,5 +30,8 @@ Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle);
 //ベクトルをQuaterinionで回転させた結果のベクトルを求める
 Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion);
 
+// 正規化済みの from を to に向ける単位四元数を返す
+Quaternion DirectionToDirection(const Vector3& from, const Vector3& to);
+
 //Quaternionから回転行列を作る
 Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion);

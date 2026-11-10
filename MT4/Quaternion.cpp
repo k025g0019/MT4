@@ -95,6 +95,30 @@ Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion) {
 	return Vector3{rotatedQuat.x, rotatedQuat.y, rotatedQuat.z};
 }
 
+Quaternion DirectionToDirection(const Vector3& from, const Vector3& to) {
+	const float dot = Dot(from, to);
+	const Vector3 cross = Cross(from, to);
+	const float crossLengthSquared = Dot(cross, cross);
+
+	// 真逆の方向では外積がゼロになるので、from に直交する回転軸を選ぶ。
+	constexpr float kOppositeAxisEpsilonSquared = 1.0e-12f;
+	if (dot < 0.0f && crossLengthSquared < kOppositeAxisEpsilonSquared) {
+		// 最も成分の小さい軸を選ぶと、外積を安定して正規化できる。
+		Vector3 referenceAxis{1.0f, 0.0f, 0.0f};
+		if (std::abs(from.y) <= std::abs(from.x) && std::abs(from.y) <= std::abs(from.z)) {
+			referenceAxis = Vector3{0.0f, 1.0f, 0.0f};
+		} else if (std::abs(from.z) <= std::abs(from.x)) {
+			referenceAxis = Vector3{0.0f, 0.0f, 1.0f};
+		}
+		const Vector3 axis = Normalize(Cross(from, referenceAxis));
+		return Quaternion{axis.x, axis.y, axis.z, 0.0f};
+	}
+
+	// q = (from × to, 1 + from・to) を正規化すると最短回転になる。
+	Quaternion rotation{cross.x, cross.y, cross.z, 1.0f + dot};
+	return Normalize(rotation);
+}
+
 Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion) {
 	Matrix4x4 rotationMatrix;
 	float xx = quaternion.x * quaternion.x;

@@ -22,6 +22,18 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& value, const char* label)
 	}
 }
 
+// 課題の確認項目を、通常・同じ向き・真逆の向きで表示する。
+void DirectionScreenPrintf(int x, int y, const Vector3& from, const Vector3& to, const char* label) {
+	Quaternion rotation = DirectionToDirection(from, to);
+	Vector3 rotated = RotateVector(from, rotation);
+	Novice::ScreenPrintf(x, y, "%s", label);
+	VectorScreenPrintf(x, y + kRowHeight, from, "from");
+	VectorScreenPrintf(x, y + kRowHeight * 2, to, "to");
+	QuaternionScreenPrintf(x, y + kRowHeight * 3, rotation, "rotation");
+	VectorScreenPrintf(x, y + kRowHeight * 4, rotated, "RotateVector(from, rotation)");
+	Novice::ScreenPrintf(x, y + kRowHeight * 5, "%.6f    : Norm(rotation)", Norm(rotation));
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	// ライブラリの初期化
@@ -61,6 +73,9 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		MatrixScreenPrintf(0, kRowHeight * 1, rotateMatrix, "rotateMatrix");
 		VectorScreenPrintf(0, kRowHeight * 6, rotateByQuaternion, "rotateByQuaternion");
 		VectorScreenPrintf(0, kRowHeight * 7, rotateByMatrix, "rotateByMatrix");
+		DirectionScreenPrintf(0, kRowHeight * 9, Vector3{1.0f, 0.0f, 0.0f}, Vector3{0.0f, 1.0f, 0.0f}, "normal");
+		DirectionScreenPrintf(0, kRowHeight * 16, Vector3{1.0f, 0.0f, 0.0f}, Vector3{1.0f, 0.0f, 0.0f}, "same");
+		DirectionScreenPrintf(0, kRowHeight * 23, Vector3{1.0f, 0.0f, 0.0f}, Vector3{-1.0f, 0.0f, 0.0f}, "opposite");
 
 		///
 		/// ↑描画処理ここまで
