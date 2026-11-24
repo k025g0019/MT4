@@ -1,110 +1,130 @@
 ﻿#include <Novice.h>
-#include <cstdio>
 
-#include "Quaternion.h"
-constexpr char kWindowTitle[] = "学籍番号";
-constexpr int kRowHeight = 20;
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 
-// 数値を同じ桁数で表示し、四元数と行列の回転結果を比較しやすくする。
-void QuaternionScreenPrintf(int x, int y, const Quaternion& value, const char* label) {
-	Novice::ScreenPrintf(x, y, "%5.2f %5.2f %5.2f %5.2f    : %s", value.x, value.y, value.z, value.w, label);
+#include "math/Vector2.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
+namespace {
+
+constexpr char kWindowTitle[] = "Jump Ramp";
+constexpr int kWindowWidth = 1280;
+constexpr int kWindowHeight = 720;
+constexpr float kPixelsPerMeter = 240.0f;
+constexpr Vector2 kScreenOrigin = {300.0f, 620.0f};
+constexpr float kRampStart = 0.0f;
+constexpr float kRampEnd = 2.0f;
+constexpr float kMoveSpeed = 0.6f; // m/s
+constexpr float kFrameTime = 1.0f / 60.0f;
+constexpr unsigned int kBackgroundColor = 0x5688B8FF;
+constexpr unsigned int kRampColor = 0xFFFFFFFF;
+constexpr unsigned int kBikeColor = 0xFFAA45FF;
+
+// 台の高さ。ワールド座標では y が上向きで、単位は m。
+float f(float x) {
+	return 0.125f * x * x * x + 0.25f * x * x;
 }
 
-void VectorScreenPrintf(int x, int y, const Vector3& value, const char* label) {
-	Novice::ScreenPrintf(x, y, "%5.2f %5.2f %5.2f    : %s", value.x, value.y, value.z, label);
+// f(x) = x^3 / 8 + x^2 / 4 を手で微分した接線の傾き。
+float fPrime(float x) {
+	return 0.375f * x * x + 0.5f * x;
 }
 
-void MatrixScreenPrintf(int x, int y, const Matrix4x4& value, const char* label) {
-	Novice::ScreenPrintf(x, y, "%s", label);
-	for (int row = 0; row < 4; ++row) {
-		Novice::ScreenPrintf(x, y + (row + 1) * kRowHeight, "%6.3f %6.3f %6.3f %6.3f",
-			value.m[row][0], value.m[row][1], value.m[row][2], value.m[row][3]);
-	}
+Vector2 NormalizeDirection(const Vector2& direction) {
+	const float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+	return {direction.x / length, direction.y / length};
 }
 
-// 課題の確認項目を、通常・同じ向き・真逆の向きで表示する。
-void DirectionScreenPrintf(int x, int y, const Vector3& from, const Vector3& to, const char* label) {
-	Quaternion rotation = DirectionToDirection(from, to);
-	Vector3 rotated = RotateVector(from, rotation);
-	Novice::ScreenPrintf(x, y, "%s", label);
-	VectorScreenPrintf(x, y + kRowHeight, from, "from");
-	VectorScreenPrintf(x, y + kRowHeight * 2, to, "to");
-	QuaternionScreenPrintf(x, y + kRowHeight * 3, rotation, "rotation");
-	VectorScreenPrintf(x, y + kRowHeight * 4, rotated, "RotateVector(from, rotation)");
-	Novice::ScreenPrintf(x, y + kRowHeight * 5, "%.6f    : Norm(rotation)", Norm(rotation));
+// 描画時だけスクリーン座標へ変換する。画面の y 軸は下向き。
+Vector2 WorldToScreen(const Vector2& world) {
+	return {kScreenOrigin.x + world.x * kPixelsPerMeter,
+		kScreenOrigin.y - world.y * kPixelsPerMeter};
 }
 
-// Windowsアプリでのエントリーポイント(main関数)
+void DrawWorldLine(const Vector2& from, const Vector2& to, unsigned int color) {
+	const Vector2 screenFrom = WorldToScreen(from);
+	const Vector2 screenTo = WorldToScreen(to);
+	Novice::DrawLine(static_cast<int>(screenFrom.x), static_cast<int>(screenFrom.y),
+		static_cast<int>(screenTo.x), static_cast<int>(screenTo.y), color);
+}
+
+// 台の接線に沿う一本の線で車体の向きを表す。
+void DrawBike(const Vector2& position, const Vector2& forward) {
+	constexpr float kHalfLength = 0.12f;
+	const Vector2 rear = {position.x - forward.x * kHalfLength,
+		position.y - forward.y * kHalfLength};
+	const Vector2 front = {position.x + forward.x * kHalfLength,
+		position.y + forward.y * kHalfLength};
+	DrawWorldLine(rear, front, kBikeColor);
+
+	const Vector2 rearScreen = WorldToScreen(rear);
+	const Vector2 frontScreen = WorldToScreen(front);
+	constexpr int kPointRadius = 6;
+	Novice::DrawEllipse(static_cast<int>(rearScreen.x), static_cast<int>(rearScreen.y),
+		kPointRadius, kPointRadius, 0.0f, kBikeColor, kFillModeSolid);
+	Novice::DrawEllipse(static_cast<int>(frontScreen.x), static_cast<int>(frontScreen.y),
+		kPointRadius, kPointRadius, 0.0f, kBikeColor, kFillModeSolid);
+}
+
+} // namespace
+
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-	// ライブラリの初期化
-	Novice::Initialize(kWindowTitle, 1280, 720);
+	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
-	// キー入力結果を受け取る箱
-	char keys[256] = {0};
-	char preKeys[256] = {0};
+	char keys[256] = {};
+	char preKeys[256] = {};
+	float x = kRampStart;
 
-	Quaternion rotation = MakeRotateAxisAngleQuaternion(Normalize(Vector3{1.0f, 0.4f, -0.2f}), 0.45f);
-	Vector3 pointY = {2.1f, -0.9f, 1.3f};
-	Matrix4x4 rotateMatrix = MakeRotateMatrix(rotation);
-	Vector3 rotateByQuaternion = RotateVector(pointY, rotation);
-	Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);
-	Quaternion rotation0 = MakeRotateAxisAngleQuaternion(Vector3{0.71f, 0.71f, 0.0f}, 0.3f);
-	Quaternion rotation1 = MakeRotateAxisAngleQuaternion(Vector3{0.71f, 0.0f, 0.71f}, 3.141592f);
-	Quaternion interpolate0 = Slerp(rotation0, rotation1, 0.0f);
-	Quaternion interpolate1 = Slerp(rotation0, rotation1, 0.3f);
-	Quaternion interpolate2 = Slerp(rotation0, rotation1, 0.5f);
-	Quaternion interpolate3 = Slerp(rotation0, rotation1, 0.7f);
-	Quaternion interpolate4 = Slerp(rotation0, rotation1, 1.0f);
-	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
-		// フレームの開始
 		Novice::BeginFrame();
-
-		// キー入力を受け取る
-		memcpy(preKeys, keys, 256);
+		std::memcpy(preKeys, keys, sizeof(keys));
 		Novice::GetHitKeyStateAll(keys);
 
-		///
-		/// ↓更新処理ここから
-		///
+		// D で登り、A で下る。反対方向の同時押しは相殺する。
+		const float moveDirection = static_cast<float>((keys[DIK_D] != 0) - (keys[DIK_A] != 0));
+		x = std::clamp(x + moveDirection * kMoveSpeed * kFrameTime, kRampStart, kRampEnd);
 
+		const float slope = fPrime(x);
+		const Vector2 position = {x, f(x)};
+		const Vector2 forward = NormalizeDirection({1.0f, slope});
 
-		///
-		/// ↑更新処理ここまで
-		///
+		Novice::DrawBox(0, 0, kWindowWidth, kWindowHeight, 0.0f,
+			kBackgroundColor, kFillModeSolid);
 
-		///
-		/// ↓描画処理ここから
-		///
-		QuaternionScreenPrintf(0, kRowHeight * 0, rotation, "rotation");
-		MatrixScreenPrintf(0, kRowHeight * 1, rotateMatrix, "rotateMatrix");
-		VectorScreenPrintf(0, kRowHeight * 6, rotateByQuaternion, "rotateByQuaternion");
-		VectorScreenPrintf(0, kRowHeight * 7, rotateByMatrix, "rotateByMatrix");
-		DirectionScreenPrintf(0, kRowHeight * 9, Vector3{1.0f, 0.0f, 0.0f}, Vector3{0.0f, 1.0f, 0.0f}, "normal");
-		DirectionScreenPrintf(0, kRowHeight * 16, Vector3{1.0f, 0.0f, 0.0f}, Vector3{1.0f, 0.0f, 0.0f}, "same");
-		DirectionScreenPrintf(0, kRowHeight * 23, Vector3{1.0f, 0.0f, 0.0f}, Vector3{-1.0f, 0.0f, 0.0f}, "opposite");
-		QuaternionScreenPrintf(650, kRowHeight * 0, rotation0, "rotation0");
-		QuaternionScreenPrintf(650, kRowHeight * 1, rotation1, "rotation1");
-		QuaternionScreenPrintf(650, kRowHeight * 3, interpolate0, "Slerp(q0, q1, 0.0f)");
-		QuaternionScreenPrintf(650, kRowHeight * 4, interpolate1, "Slerp(q0, q1, 0.3f)");
-		QuaternionScreenPrintf(650, kRowHeight * 5, interpolate2, "Slerp(q0, q1, 0.5f)");
-		QuaternionScreenPrintf(650, kRowHeight * 6, interpolate3, "Slerp(q0, q1, 0.7f)");
-		QuaternionScreenPrintf(650, kRowHeight * 7, interpolate4, "Slerp(q0, q1, 1.0f)");
+		// 台の曲線と、その高さ・区間を示す補助線。
+		DrawWorldLine({-0.8f, 0.0f}, {3.6f, 0.0f}, kRampColor);
+		DrawWorldLine({kRampEnd, 0.0f}, {kRampEnd, f(kRampEnd)}, kRampColor);
+		constexpr int kRampSegments = 80;
+		for (int i = 0; i < kRampSegments; ++i) {
+			const float fromX = kRampEnd * static_cast<float>(i) / kRampSegments;
+			const float toX = kRampEnd * static_cast<float>(i + 1) / kRampSegments;
+			DrawWorldLine({fromX, f(fromX)}, {toX, f(toX)}, kRampColor);
+		}
 
-		///
-		/// ↑描画処理ここまで
-		///
+		DrawBike(position, forward);
 
-		// フレームの終了
+#ifdef USE_IMGUI
+		ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Jump Ramp");
+		ImGui::Text("A / D : move");
+		ImGui::Separator();
+		ImGui::Text("x: %.3f m", x);
+		ImGui::Text("f'(x): %.3f", slope);
+		ImGui::Text("Forward: (%.3f, %.3f)", forward.x, forward.y);
+		ImGui::End();
+#endif
+
 		Novice::EndFrame();
-
-		// ESCキーが押されたらループを抜ける
 		if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
 			break;
 		}
 	}
 
-	// ライブラリの終了
 	Novice::Finalize();
 	return 0;
 }
