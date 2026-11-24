@@ -1,6 +1,5 @@
 ﻿#include <Novice.h>
 
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -10,114 +9,103 @@
 #include <imgui.h>
 #endif
 
+// スカラーを左に置くベクトルの掛け算。ベジェ曲線の式で使用する。
+Vector2 operator*(float s, const Vector2& v) {
+	return {s * v.x, s * v.y};
+}
+
+// 2次ベジェ曲線上の点を返す。
+Vector2 Bezier(const Vector2& p0, const Vector2& p1, const Vector2& p2, float t) {
+	const Vector2 first = Add((1.0f - t) * p0, t * p1);
+	const Vector2 second = Add((1.0f - t) * p1, t * p2);
+	return Add((1.0f - t) * first, t * second);
+}
+
+// B(t) = (1-t)^2 p0 + 2(1-t)t p1 + t^2 p2 を微分した接線ベクトル。
+Vector2 BezierDerivative(const Vector2& p0, const Vector2& p1, const Vector2& p2, float t) {
+	return Add(2.0f * (1.0f - t) * Subtract(p1, p0),
+		2.0f * t * Subtract(p2, p1));
+}
+
 namespace {
 
-constexpr char kWindowTitle[] = "Jump Ramp";
+constexpr char kWindowTitle[] = "Bezier";
 constexpr int kWindowWidth = 1280;
 constexpr int kWindowHeight = 720;
-constexpr float kPixelsPerMeter = 240.0f;
-constexpr Vector2 kScreenOrigin = {300.0f, 620.0f};
-constexpr float kRampStart = 0.0f;
-constexpr float kRampEnd = 2.0f;
-constexpr float kMoveSpeed = 0.6f; // m/s
-constexpr float kFrameTime = 1.0f / 60.0f;
 constexpr unsigned int kBackgroundColor = 0x5688B8FF;
-constexpr unsigned int kRampColor = 0xFFFFFFFF;
-constexpr unsigned int kBikeColor = 0xFFAA45FF;
+constexpr unsigned int kCurveColor = 0xFFFFFFFF;
+constexpr unsigned int kPointColor = 0xFFAA45FF;
+constexpr unsigned int kTangentColor = 0xE65050FF;
+constexpr float kTangentLength = 120.0f;
 
-// 台の高さ。ワールド座標では y が上向きで、単位は m。
-float f(float x) {
-	return 0.125f * x * x * x + 0.25f * x * x;
+void DrawBezierCurve(const Vector2& p0, const Vector2& p1, const Vector2& p2) {
+	constexpr int kSegments = 100;
+	for (int i = 0; i < kSegments; ++i) {
+		const float fromT = static_cast<float>(i) / kSegments;
+		const float toT = static_cast<float>(i + 1) / kSegments;
+		const Vector2 from = Bezier(p0, p1, p2, fromT);
+		const Vector2 to = Bezier(p0, p1, p2, toT);
+		Novice::DrawLine(static_cast<int>(from.x), static_cast<int>(from.y),
+			static_cast<int>(to.x), static_cast<int>(to.y), kCurveColor);
+	}
 }
 
-// f(x) = x^3 / 8 + x^2 / 4 を手で微分した接線の傾き。
-float fPrime(float x) {
-	return 0.375f * x * x + 0.5f * x;
-}
+void DrawPointAndTangent(const Vector2& point, const Vector2& derivative) {
+	const float length = std::sqrt(derivative.x * derivative.x + derivative.y * derivative.y);
+	if (length > 0.0f) {
+		const Vector2 end = Add(point, (kTangentLength / length) * derivative);
+		Novice::DrawLine(static_cast<int>(point.x), static_cast<int>(point.y),
+			static_cast<int>(end.x), static_cast<int>(end.y), kTangentColor);
+	}
 
-Vector2 NormalizeDirection(const Vector2& direction) {
-	const float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-	return {direction.x / length, direction.y / length};
-}
-
-// 描画時だけスクリーン座標へ変換する。画面の y 軸は下向き。
-Vector2 WorldToScreen(const Vector2& world) {
-	return {kScreenOrigin.x + world.x * kPixelsPerMeter,
-		kScreenOrigin.y - world.y * kPixelsPerMeter};
-}
-
-void DrawWorldLine(const Vector2& from, const Vector2& to, unsigned int color) {
-	const Vector2 screenFrom = WorldToScreen(from);
-	const Vector2 screenTo = WorldToScreen(to);
-	Novice::DrawLine(static_cast<int>(screenFrom.x), static_cast<int>(screenFrom.y),
-		static_cast<int>(screenTo.x), static_cast<int>(screenTo.y), color);
-}
-
-// 台の接線に沿う一本の線で車体の向きを表す。
-void DrawBike(const Vector2& position, const Vector2& forward) {
-	constexpr float kHalfLength = 0.12f;
-	const Vector2 rear = {position.x - forward.x * kHalfLength,
-		position.y - forward.y * kHalfLength};
-	const Vector2 front = {position.x + forward.x * kHalfLength,
-		position.y + forward.y * kHalfLength};
-	DrawWorldLine(rear, front, kBikeColor);
-
-	const Vector2 rearScreen = WorldToScreen(rear);
-	const Vector2 frontScreen = WorldToScreen(front);
 	constexpr int kPointRadius = 6;
-	Novice::DrawEllipse(static_cast<int>(rearScreen.x), static_cast<int>(rearScreen.y),
-		kPointRadius, kPointRadius, 0.0f, kBikeColor, kFillModeSolid);
-	Novice::DrawEllipse(static_cast<int>(frontScreen.x), static_cast<int>(frontScreen.y),
-		kPointRadius, kPointRadius, 0.0f, kBikeColor, kFillModeSolid);
+	Novice::DrawEllipse(static_cast<int>(point.x), static_cast<int>(point.y),
+		kPointRadius, kPointRadius, 0.0f, kPointColor, kFillModeSolid);
 }
+
+#ifdef USE_IMGUI
+void DrawBezierUi(float& t, Vector2& p1, const Vector2& p0, const Vector2& p2) {
+	ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_FirstUseEver);
+	ImGui::Begin("Bezier");
+	ImGui::SliderFloat("t", &t, 0.0f, 1.0f, "%.3f");
+	ImGui::SliderFloat("p1 x", &p1.x, 400.0f, 880.0f, "%.0f");
+	ImGui::SliderFloat("p1 y", &p1.y, 20.0f, 570.0f, "%.0f");
+	ImGui::Separator();
+	const Vector2 point = Bezier(p0, p1, p2, t);
+	const Vector2 derivative = BezierDerivative(p0, p1, p2, t);
+	ImGui::Text("B(t): (%.2f, %.2f)", point.x, point.y);
+	ImGui::Text("B'(t): (%.2f, %.2f)", derivative.x, derivative.y);
+	ImGui::End();
+}
+#endif
 
 } // namespace
 
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	Novice::Initialize(kWindowTitle, kWindowWidth, kWindowHeight);
 
+	const Vector2 p0 = {200.0f, 570.0f};
+	Vector2 p1 = {800.0f, 70.0f};
+	const Vector2 p2 = {1080.0f, 570.0f};
+	float t = 0.5f;
 	char keys[256] = {};
 	char preKeys[256] = {};
-	float x = kRampStart;
 
 	while (Novice::ProcessMessage() == 0) {
 		Novice::BeginFrame();
 		std::memcpy(preKeys, keys, sizeof(keys));
 		Novice::GetHitKeyStateAll(keys);
 
-		// D で登り、A で下る。反対方向の同時押しは相殺する。
-		const float moveDirection = static_cast<float>((keys[DIK_D] != 0) - (keys[DIK_A] != 0));
-		x = std::clamp(x + moveDirection * kMoveSpeed * kFrameTime, kRampStart, kRampEnd);
+#ifdef USE_IMGUI
+		DrawBezierUi(t, p1, p0, p2);
+#endif
 
-		const float slope = fPrime(x);
-		const Vector2 position = {x, f(x)};
-		const Vector2 forward = NormalizeDirection({1.0f, slope});
-
+		const Vector2 point = Bezier(p0, p1, p2, t);
+		const Vector2 derivative = BezierDerivative(p0, p1, p2, t);
 		Novice::DrawBox(0, 0, kWindowWidth, kWindowHeight, 0.0f,
 			kBackgroundColor, kFillModeSolid);
-
-		// 台の曲線と、その高さ・区間を示す補助線。
-		DrawWorldLine({-0.8f, 0.0f}, {3.6f, 0.0f}, kRampColor);
-		DrawWorldLine({kRampEnd, 0.0f}, {kRampEnd, f(kRampEnd)}, kRampColor);
-		constexpr int kRampSegments = 80;
-		for (int i = 0; i < kRampSegments; ++i) {
-			const float fromX = kRampEnd * static_cast<float>(i) / kRampSegments;
-			const float toX = kRampEnd * static_cast<float>(i + 1) / kRampSegments;
-			DrawWorldLine({fromX, f(fromX)}, {toX, f(toX)}, kRampColor);
-		}
-
-		DrawBike(position, forward);
-
-#ifdef USE_IMGUI
-		ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_FirstUseEver);
-		ImGui::Begin("Jump Ramp");
-		ImGui::Text("A / D : move");
-		ImGui::Separator();
-		ImGui::Text("x: %.3f m", x);
-		ImGui::Text("f'(x): %.3f", slope);
-		ImGui::Text("Forward: (%.3f, %.3f)", forward.x, forward.y);
-		ImGui::End();
-#endif
+		DrawBezierCurve(p0, p1, p2);
+		DrawPointAndTangent(point, derivative);
 
 		Novice::EndFrame();
 		if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
