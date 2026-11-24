@@ -1,5 +1,6 @@
-#include "Quaternion.h"
+﻿#include "Quaternion.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sys/stat.h>
 /// <summary>
@@ -65,4 +66,121 @@ Quaternion Multiply(Quaternion& lhs, Quaternion& rhs) {
 		lhs.w * rhs.z + lhs.x * rhs.y - lhs.y * rhs.x + lhs.z * rhs.w,
 		lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z
 	};
+}
+
+Quaternion MakeRotateAxisAngleQuaternion(const Vector3& axis, float angle) {
+	// 回転軸を正規化
+	Vector3 n = Normalize(axis);
+
+	// 回転角度の半分
+	float halfAngle = angle / 2.0f;
+
+	Quaternion result;
+	result.x = n.x * std::sin(halfAngle);
+	result.y = n.y * std::sin(halfAngle);
+	result.z = n.z * std::sin(halfAngle);
+	result.w = std::cos(halfAngle);
+
+	return result;
+}
+
+Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion) {
+	// ベクトルを四元数として表現
+	Quaternion vectorQuat{vector.x, vector.y, vector.z, 0.0f};
+	// 回転を適用。既存APIは変更可能な参照を受けるため、四元数を複製して渡す。
+	Quaternion rotation = quaternion;
+	Quaternion firstProduct = Multiply(rotation, vectorQuat);
+	Quaternion inverse = Inverse(rotation);
+	Quaternion rotatedQuat = Multiply(firstProduct, inverse);
+	// 結果のベクトルを返す
+	return Vector3{rotatedQuat.x, rotatedQuat.y, rotatedQuat.z};
+}
+
+Quaternion DirectionToDirection(const Vector3& from, const Vector3& to) {
+	const float dot = Dot(from, to);
+	const Vector3 cross = Cross(from, to);
+	const float crossLengthSquared = Dot(cross, cross);
+
+	// 真逆の方向では外積がゼロになるので、from に直交する回転軸を選ぶ。
+	constexpr float kOppositeAxisEpsilonSquared = 1.0e-12f;
+	if (dot < 0.0f && crossLengthSquared < kOppositeAxisEpsilonSquared) {
+		// 最も成分の小さい軸を選ぶと、外積を安定して正規化できる。
+		Vector3 referenceAxis{1.0f, 0.0f, 0.0f};
+		if (std::abs(from.y) <= std::abs(from.x) && std::abs(from.y) <= std::abs(from.z)) {
+			referenceAxis = Vector3{0.0f, 1.0f, 0.0f};
+		} else if (std::abs(from.z) <= std::abs(from.x)) {
+			referenceAxis = Vector3{0.0f, 0.0f, 1.0f};
+		}
+		const Vector3 axis = Normalize(Cross(from, referenceAxis));
+		return Quaternion{axis.x, axis.y, axis.z, 0.0f};
+	}
+
+	// q = (from × to, 1 + from・to) を正規化すると最短回転になる。
+	Quaternion rotation{cross.x, cross.y, cross.z, 1.0f + dot};
+	return Normalize(rotation);
+}
+
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t) {
+	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+	Quaternion end = q1;
+	if (dot < 0.0f) {
+		// q と -q は同じ回転なので、短い方の経路を使う。
+		end = Quaternion{-q1.x, -q1.y, -q1.z, -q1.w};
+		dot = -dot;
+	}
+
+	// 浮動小数点誤差で acos の定義域を外れないようにする。
+	dot = std::clamp(dot, -1.0f, 1.0f);
+	constexpr float kNearlySameDirection = 0.9995f;
+	if (dot > kNearlySameDirection) {
+		// sin(theta) がほぼゼロのときは線形補間で不安定な除算を避ける。
+		return Quaternion{
+			q0.x + t * (end.x - q0.x),
+			q0.y + t * (end.y - q0.y),
+			q0.z + t * (end.z - q0.z),
+			q0.w + t * (end.w - q0.w)
+		};
+	}
+
+	const float theta = std::acos(dot);
+	const float sinTheta = std::sin(theta);
+	const float scale0 = std::sin((1.0f - t) * theta) / sinTheta;
+	const float scale1 = std::sin(t * theta) / sinTheta;
+	return Quaternion{
+		scale0 * q0.x + scale1 * end.x,
+		scale0 * q0.y + scale1 * end.y,
+		scale0 * q0.z + scale1 * end.z,
+		scale0 * q0.w + scale1 * end.w
+	};
+}
+
+Matrix4x4 MakeRotateMatrix(const Quaternion& quaternion) {
+	Matrix4x4 rotationMatrix;
+	float xx = quaternion.x * quaternion.x;
+	float yy = quaternion.y * quaternion.y;
+	float zz = quaternion.z * quaternion.z;
+	float xy = quaternion.x * quaternion.y;
+	float xz = quaternion.x * quaternion.z;
+	float yz = quaternion.y * quaternion.z;
+	float wx = quaternion.w * quaternion.x;
+	float wy = quaternion.w * quaternion.y;
+	float wz = quaternion.w * quaternion.z;
+	rotationMatrix.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	// Transform の行ベクトル方式に合わせて転置した配置にする。
+	rotationMatrix.m[0][1] = 2.0f * (xy + wz);
+	rotationMatrix.m[0][2] = 2.0f * (xz - wy);
+	rotationMatrix.m[0][3] = 0.0f;
+	rotationMatrix.m[1][0] = 2.0f * (xy - wz);
+	rotationMatrix.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	rotationMatrix.m[1][2] = 2.0f * (yz + wx);
+	rotationMatrix.m[1][3] = 0.0f;
+	rotationMatrix.m[2][0] = 2.0f * (xz + wy);
+	rotationMatrix.m[2][1] = 2.0f * (yz - wx);
+	rotationMatrix.m[2][2] = 1.0f - 2.0f * (xx + yy);
+	rotationMatrix.m[2][3] = 0.0f;
+	rotationMatrix.m[3][0] = 0.0f;
+	rotationMatrix.m[3][1] = 0.0f;
+	rotationMatrix.m[3][2] = 0.0f;
+	rotationMatrix.m[3][3] = 1.0f;
+	return rotationMatrix;
 }
